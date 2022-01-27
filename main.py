@@ -54,18 +54,12 @@ def train(net, trainloader, epochs, device: str):
                loss = criterion(net(images), labels)
                loss.backward()
                optimizer.step()
-    # print(prof.key_averages(group_by_input_shape=True).table(sort_by="cpu_time_total", row_limit=10))
-    # os.chdir("/")
-    f = open("profiling.txt","w")
-    print(prof.key_averages(group_by_input_shape=True).table(sort_by="cpu_time_total", row_limit=2), file = f)
+    list1 = prof.key_averages(group_by_input_shape=True).table(sort_by="cpu_time_total", row_limit=0)
     print("end profiling")
 
-    with open('profiling.txt', 'r') as f1:
-        list1 = f1.readlines()
-    # print("result:", list1[(len(list1)-2)])
     import re
-    find_float = lambda x: re.search("\d+(\.\d+)?",x).group()
-    cpu_time = float(find_float(str(list1[(len(list1)-2)])))
+    find_float = lambda x: re.search("\d+(\.\d+)?s", x).group()
+    cpu_time = float(find_float(str(list1))[:-1])
     print("cpu_time", cpu_time)
     return cpu_time
 
@@ -139,6 +133,10 @@ class CifarRayClient(fl.client.NumPyClient):
         cpu_time = train(self.net, trainloader, epochs=int(config["epochs"]), device=self.device)
         self.properties['cpu_time'] = cpu_time
         print("properties:", self.properties)
+
+        f = open(f"client_properties_{self.cid}.pickle",'wb')
+        pkl.dump(self.properties, f)
+        f.close()
 
         # return local model and statistics
         return self.get_parameters(), len(trainloader.dataset), {}
