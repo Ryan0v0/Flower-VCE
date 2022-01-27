@@ -89,7 +89,15 @@ class CifarRayClient(fl.client.NumPyClient):
     def __init__(self, cid: str, fed_dir_data: str):
         self.cid = cid
         self.fed_dir = Path(fed_dir_data)
-        self.properties: Dict[str, Scalar] = {"tensor_type": "numpy.ndarray"}
+        
+        if(os.path.exists(f"client_properties_{self.cid}.pickle")):
+            cpkl = open(f"client_properties_{self.cid}.pickle", 'rb')
+            data = pkl.load(cpkl)
+            self.properties: Dict[str, Scalar] = {"tensor_type": "numpy.ndarray", "cpu_time": data['cpu_time']}
+        else:
+            self.properties: Dict[str, Scalar] = {"tensor_type": "numpy.ndarray"}
+
+        # print("construction: self.properties", self.properties)
 
         # instantiate model
         self.net = Net()
