@@ -13,6 +13,7 @@ from dataset_utils import getCIFAR10, do_fl_partitioning, get_dataloader
 
 from torch.profiler import profile, record_function, ProfilerActivity
 import os
+import pickle as pkl
 
 
 # Model (simple CNN adapted from 'PyTorch: A 60 Minute Blitz')
@@ -58,6 +59,15 @@ def train(net, trainloader, epochs, device: str):
     f = open("profiling.txt","w")
     print(prof.key_averages(group_by_input_shape=True).table(sort_by="cpu_time_total", row_limit=2), file = f)
     print("end profiling")
+
+    with open('profiling.txt', 'r') as f1:
+        list1 = f1.readlines()
+    # print("result:", list1[(len(list1)-2)])
+    import re
+    find_float = lambda x: re.search("\d+(\.\d+)?",x).group()
+    cpu_time = float(find_float(str(list1[(len(list1)-2)])))
+    print("cpu_time", cpu_time)
+    return cpu_time
 
 
 # borrowed from Pytorch quickstart example
@@ -126,16 +136,9 @@ class CifarRayClient(fl.client.NumPyClient):
         self.net.to(self.device)
 
         # train
-        train(self.net, trainloader, epochs=int(config["epochs"]), device=self.device)
-
-        with open('profiling.txt', 'r') as f1:
-          list1 = f1.readlines()
-        # print("result:", list1[(len(list1)-2)])
-        import re
-        find_float = lambda x: re.search("\d+(\.\d+)?",x).group()
-        tmp = float(find_float(str(list1[(len(list1)-2)])))
-        print("properties:", tmp)
-        self.properties = tmp
+        cpu_time = train(self.net, trainloader, epochs=int(config["epochs"]), device=self.device)
+        self.properties['cpu_time'] = cpu_time
+        print("properties:", self.properties)
 
         # return local model and statistics
         return self.get_parameters(), len(trainloader.dataset), {}
