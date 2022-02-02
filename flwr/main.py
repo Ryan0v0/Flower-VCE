@@ -1,6 +1,6 @@
 import sys
-sys.path.append(“..”)
-from flwr import *
+sys.path.append("..")
+import flwr as fl
 from flwr.common.typing import Scalar
 import ray
 import torch
@@ -87,7 +87,7 @@ def test(net, testloader, device: str):
 
 # Flower client that will be spawned by Ray
 # Adapted from Pytorch quickstart example
-class CifarRayClient(client.NumPyClient):
+class CifarRayClient(fl.client.NumPyClient):
     def __init__(self, cid: str, fed_dir_data: str):
         self.cid = cid
         self.fed_dir = Path(fed_dir_data)
@@ -180,7 +180,7 @@ def fit_config(rnd: int) -> Dict[str, str]:
     return config
 
 
-def set_weights(model: torch.nn.ModuleList, weights: common.Weights) -> None:
+def set_weights(model: torch.nn.ModuleList, weights: fl.common.Weights) -> None:
     """Set model weights from a list of NumPy ndarrays."""
     state_dict = OrderedDict(
                              {
@@ -193,10 +193,10 @@ def set_weights(model: torch.nn.ModuleList, weights: common.Weights) -> None:
 
 def get_eval_fn(
                 testset: torchvision.datasets.CIFAR10,
-                ) -> Callable[[common.Weights], Optional[Tuple[float, float]]]:
+                ) -> Callable[[fl.common.Weights], Optional[Tuple[float, float]]]:
     """Return an evaluation function for centralized evaluation."""
 
-    def evaluate(weights: common.Weights) -> Optional[Tuple[float, float]]:
+    def evaluate(weights: fl.common.Weights) -> Optional[Tuple[float, float]]:
         """Use the entire CIFAR-10 test set for evaluation."""
         
         # determine device
@@ -241,7 +241,7 @@ if __name__ == "__main__":
     fed_dir = do_fl_partitioning(train_path, pool_size=pool_size, alpha=1000, num_classes=10, val_ratio=0.1)
     
     # configure the strategy
-    strategy = server.strategy.FedAvg(fraction_fit=0.1, min_fit_clients=10, min_available_clients=pool_size,  # All clients should be available
+    strategy = fl.server.strategy.FedAvg(fraction_fit=0.1, min_fit_clients=10, min_available_clients=pool_size,  # All clients should be available
                                          on_fit_config_fn=fit_config, eval_fn=get_eval_fn(testset),  # centralised testset evaluation of global model
                                          )
         
@@ -253,7 +253,7 @@ if __name__ == "__main__":
     ray_config = {"include_dashboard": False}
 
                                          # start simulation
-    simulation.start_simulation(client_fn=client_fn,
+    fl.simulation.start_simulation(client_fn=client_fn,
                                    num_clients=pool_size,
                                    client_resources=client_resources,
                                    num_rounds=5,

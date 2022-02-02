@@ -1,6 +1,5 @@
 import sys
-sys.path.append(“..”)
-from flwr import *
+sys.path.append("..")
 from pathlib import Path
 import numpy as np
 import torch
@@ -10,7 +9,7 @@ import shutil
 from PIL import Image
 from torchvision.datasets import VisionDataset
 from typing import Callable, Optional, Tuple, Any
-from dataset.utils.common import create_lda_partitions
+from flwr.dataset.utils.common import create_lda_partitions
 
 
 def get_dataset(path_to_data: Path, cid: str, partition: str):
