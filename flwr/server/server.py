@@ -126,7 +126,7 @@ class Server:
 
         # Initialize parameters
         log(INFO, "Initializing global parameters")
-        self.parameters = self._get_initial_parameters()
+        self.parameters = self._get_initial_parameters(net)
         log(INFO, "Evaluating initial parameters")
         res = self.strategy.evaluate(parameters=self.parameters)
         if res is not None:
@@ -312,7 +312,7 @@ class Server:
             max_workers=self.max_workers,
         )
 
-    def _get_initial_parameters(self) -> Parameters:
+    def _get_initial_parameters(self, net) -> Parameters:
         """Get initial parameters from one of the available clients."""
 
         # Server-side parameter initialization
@@ -326,7 +326,7 @@ class Server:
         # Get initial parameters from one of the clients
         log(INFO, "Requesting initial parameters from one random client")
         random_client = self._client_manager.sample(1)[0]
-        parameters_res = random_client.get_parameters()
+        parameters_res = random_client.get_parameters(net)
         log(INFO, "Received initial parameters from one random client")
         return parameters_res.parameters
 
