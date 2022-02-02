@@ -100,12 +100,14 @@ class CifarRayClient(fl.client.NumPyClient):
         # print("construction: self.properties", self.properties)
 
         # instantiate model
-        self.net = Net()
+        # self.net = Net()
 
         # determine device
         self.device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
-    def get_parameters(self, net):
+    def get_parameters(self, net=None):
+        if(net == None):
+            net = Net()
         return [val.cpu().numpy() for _, val in net.state_dict().items()]
 
     # def get_properties(self, ins: PropertiesIns) -> PropertiesRes:
