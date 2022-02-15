@@ -1,3 +1,4 @@
+%%writefile main.py
 import flwr as fl
 from flwr.common.typing import Scalar
 import ray
@@ -27,7 +28,7 @@ class Net(nn.Module):
         self.fc1 = nn.Linear(16 * 5 * 5, 120)
         self.fc2 = nn.Linear(120, 84)
         self.fc3 = nn.Linear(84, 10)
-
+    
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         x = self.pool(F.relu(self.conv1(x)))
         x = self.pool(F.relu(self.conv2(x)))
@@ -44,20 +45,20 @@ def train(net, trainloader, epochs, device: str):
     criterion = torch.nn.CrossEntropyLoss()
     optimizer = torch.optim.SGD(net.parameters(), lr=0.01, momentum=0.9)
     net.train()
-
+    
     print("start profiling...")
     with profile(activities=[ProfilerActivity.CPU], record_shapes=True) as prof:
         for _ in range(epochs):
-           for images, labels in trainloader:
-               images, labels = images.to(device), labels.to(device)
-               optimizer.zero_grad()
-               loss = criterion(net(images), labels)
-               loss.backward()
-               optimizer.step()
-    list1 = prof.key_averages(group_by_input_shape=True).table(sort_by="cpu_time_total", row_limit=0)
-    print("end profiling")
+            for images, labels in trainloader:
+                images, labels = images.to(device), labels.to(device)
+                optimizer.zero_grad()
+                loss = criterion(net(images), labels)
+                loss.backward()
+                optimizer.step()
+                list1 = prof.key_averages(group_by_input_shape=True).table(sort_by="cpu_time_total", row_limit=0)
+                print("end profiling")
 
-    import re
+import re
     find_float = lambda x: re.search("\d+(\.\d+)?s", x).group()
     cpu_time = float(find_float(str(list1))[:-1])
     print("cpu_time", cpu_time)
@@ -96,82 +97,82 @@ class CifarRayClient(fl.client.NumPyClient):
             self.properties: Dict[str, Scalar] = {"tensor_type": "numpy.ndarray", "cpu_time": data['cpu_time']}
         else:
             self.properties: Dict[str, Scalar] = {"tensor_type": "numpy.ndarray"}
-
+        
         # print("construction: self.properties", self.properties)
-
+        
         # instantiate model
         # self.net = Net()
-
+        
         # determine device
         self.device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
-
+    
     def get_parameters(self, net=None):
         if(net == None):
             net = Net()
         return [val.cpu().numpy() for _, val in net.state_dict().items()]
 
-    # def get_properties(self, ins: PropertiesIns) -> PropertiesRes:
-    def get_properties(self, ins):
-        return self.properties
+# def get_properties(self, ins: PropertiesIns) -> PropertiesRes:
+def get_properties(self, ins):
+    return self.properties
     
     def set_parameters(self, parameters):
         net = Net()
         params_dict = zip(net.state_dict().keys(), parameters)
         state_dict = OrderedDict(
-            {k: torch.from_numpy(np.copy(v)) for k, v in params_dict}
-        )
-        net.load_state_dict(state_dict, strict=True)
-        return net
-        
-    def fit(self, parameters, config):
-        
-        # print(f"fit() on client cid={self.cid}")
-        net = self.set_parameters(parameters)
-        
-        # load data for this client and get trainloader
-        num_workers = len(ray.worker.get_resource_ids()["CPU"])
+                                 {k: torch.from_numpy(np.copy(v)) for k, v in params_dict}
+                                 )
+                                 net.load_state_dict(state_dict, strict=True)
+            return net
+
+            def fit(self, parameters, config):
+
+# print(f"fit() on client cid={self.cid}")
+net = self.set_parameters(parameters)
+
+    # load data for this client and get trainloader
+    num_workers = len(ray.worker.get_resource_ids()["CPU"])
         trainloader = get_dataloader(
-            self.fed_dir,
-            self.cid,
-            is_train=True,
-            batch_size=int(config["batch_size"]),
-            workers=num_workers,
-        )
-        
-        # send model to device
-        net.to(self.device)
-        
-        # train
-        cpu_time = train(net, trainloader, epochs=int(config["epochs"]), device=self.device)
-        self.properties['cpu_time'] = cpu_time
-        print("properties:", self.properties)
-        
-        f = open(f"client_properties_{self.cid}.pickle",'wb')
-        pkl.dump(self.properties, f)
-        f.close()
-        
-        # return local model and statistics
-        return self.get_parameters(net), len(trainloader.dataset), {}
+                                     self.fed_dir,
+                                     self.cid,
+                                     is_train=True,
+                                     batch_size=int(config["batch_size"]),
+                                     workers=num_workers,
+                                     )
+            
+                                     # send model to device
+                                     net.to(self.device)
 
-    def evaluate(self, parameters, config):
+                                     # train
+                                     cpu_time = train(net, trainloader, epochs=int(config["epochs"]), device=self.device)
+                                     self.properties['cpu_time'] = cpu_time
+                                     print("properties:", self.properties)
+                                     
+                                     f = open(f"client_properties_{self.cid}.pickle",'wb')
+                                     pkl.dump(self.properties, f)
+                                     f.close()
+                                     
+                                     # return local model and statistics
+                                         return self.get_parameters(net), len(trainloader.dataset), {}
 
-        # print(f"evaluate() on client cid={self.cid}")
-        self.set_parameters(parameters)
-
+def evaluate(self, parameters, config):
+    
+    # print(f"evaluate() on client cid={self.cid}")
+    self.set_parameters(parameters)
+        
         # load data for this client and get trainloader
         num_workers = len(ray.worker.get_resource_ids()["CPU"])
         valloader = get_dataloader(
-            self.fed_dir, self.cid, is_train=False, batch_size=50, workers=num_workers
-        )
-
-        # send model to device
-        self.net.to(self.device)
-
-        # evaluate
-        loss, accuracy = test(self.net, valloader, device=self.device)
-
-        # return statistics
-        return float(loss), len(valloader.dataset), {"accuracy": float(accuracy)}
+                                   self.fed_dir, self.cid, is_train=False, batch_size=50, workers=num_workers
+                                   )
+            
+                                   # send model to device
+                                   self.net.to(self.device)
+                                   
+                                   # evaluate
+                                   loss, accuracy = test(self.net, valloader, device=self.device)
+                                   
+# return statistics
+                                       return float(loss), len(valloader.dataset), {"accuracy": float(accuracy)}
 
 
 def fit_config(rnd: int) -> Dict[str, str]:
@@ -187,32 +188,32 @@ def fit_config(rnd: int) -> Dict[str, str]:
 def set_weights(model: torch.nn.ModuleList, weights: fl.common.Weights) -> None:
     """Set model weights from a list of NumPy ndarrays."""
     state_dict = OrderedDict(
-        {
-            k: torch.tensor(np.atleast_1d(v))
-            for k, v in zip(model.state_dict().keys(), weights)
-        }
-    )
+                             {
+                             k: torch.tensor(np.atleast_1d(v))
+                             for k, v in zip(model.state_dict().keys(), weights)
+                             }
+                             )
     model.load_state_dict(state_dict, strict=True)
 
 
 def get_eval_fn(
-    testset: torchvision.datasets.CIFAR10,
-) -> Callable[[fl.common.Weights], Optional[Tuple[float, float]]]:
+                testset: torchvision.datasets.CIFAR10,
+                ) -> Callable[[fl.common.Weights], Optional[Tuple[float, float]]]:
     """Return an evaluation function for centralized evaluation."""
 
     def evaluate(weights: fl.common.Weights) -> Optional[Tuple[float, float]]:
         """Use the entire CIFAR-10 test set for evaluation."""
-
+        
         # determine device
         device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
-
+        
         model = Net()
         set_weights(model, weights)
         model.to(device)
-
+        
         testloader = torch.utils.data.DataLoader(testset, batch_size=50)
         loss, accuracy = test(model, testloader, device=device)
-
+        
         # return statistics
         return loss, {"accuracy": accuracy}
 
@@ -230,44 +231,44 @@ def get_eval_fn(
 #    client. This is useful to get a sense on how well the global model can generalise
 #    to each client's data.
 if __name__ == "__main__":
-
+    
     pool_size = 100  # number of dataset partions (= number of total clients)
     client_resources = {"num_cpus": 1}  # each client will get allocated 1 CPUs
-
+    
     # download CIFAR10 dataset
     train_path, testset = getCIFAR10()
-
+    
     # partition dataset (use a large `alpha` to make it IID;
     # a small value (e.g. 1) will make it non-IID)
     # This will create a new directory called "federated: in the directory where
     # CIFAR-10 lives. Inside it, there will be N=pool_size sub-directories each with
     # its own train/set split.
     fed_dir = do_fl_partitioning(
-        train_path, pool_size=pool_size, alpha=1000, num_classes=10, val_ratio=0.1
-    )
+                                 train_path, pool_size=pool_size, alpha=1000, num_classes=10, val_ratio=0.1
+                                 )
+        
+                                 # configure the strategy
+                                 strategy = fl.server.strategy.FedAvg(
+                                                                      fraction_fit=0.1,
+                                                                      min_fit_clients=10,
+                                                                      min_available_clients=pool_size,  # All clients should be available
+                                                                      on_fit_config_fn=fit_config,
+                                                                      eval_fn=get_eval_fn(testset),  # centralised testset evaluation of global model
+                                                                      )
+                                 
+                                 def client_fn(cid: str):
+                                 # create a single client instance
+                                     return CifarRayClient(cid, fed_dir)
 
-    # configure the strategy
-    strategy = fl.server.strategy.Selective_FedAvg(
-        fraction_fit=0.1,
-        min_fit_clients=10,
-        min_available_clients=pool_size,  # All clients should be available
-        on_fit_config_fn=fit_config,
-        eval_fn=get_eval_fn(testset),  # centralised testset evaluation of global model
-    )
-
-    def client_fn(cid: str):
-        # create a single client instance
-        return CifarRayClient(cid, fed_dir)
-
-    # (optional) specify ray config
-    ray_config = {"include_dashboard": False}
-
+# (optional) specify ray config
+ray_config = {"include_dashboard": False}
+    
     # start simulation
     fl.simulation.start_simulation(
-        client_fn=client_fn,
-        num_clients=pool_size,
-        client_resources=client_resources,
-        num_rounds=5,
-        strategy=strategy,
-        ray_init_args=ray_config,
-    )
+                                   client_fn=client_fn,
+                                   num_clients=pool_size,
+                                   client_resources=client_resources,
+                                   num_rounds=5,
+                                   strategy=strategy,
+                                   ray_init_args=ray_config,
+                                   )

@@ -38,7 +38,7 @@ from flwr.server.client_proxy import ClientProxy
 
 from .aggregate import aggregate, weighted_loss_avg
 from .strategy import Strategy
-from .FedAvg import FedAvg
+from .fedavg import FedAvg
 
 DEPRECATION_WARNING = """
 DEPRECATION WARNING: deprecated `eval_fn` return format
