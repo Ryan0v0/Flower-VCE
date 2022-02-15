@@ -78,7 +78,7 @@ than or equal to the values of `min_fit_clients` and `min_eval_clients`.
 
 
 class Selective_FedAvg(FedAvg):
-    """Configurable FedAvg strategy implementation."""
+    """Configurable Selective_FedAvg strategy implementation."""
 
     # pylint: disable=too-many-arguments,too-many-instance-attributes
     def __init__(
