@@ -123,7 +123,16 @@ class Selective_FedAvg(FedAvg):
         initial_parameters : Parameters, optional
             Initial global model parameters.
         """
-        super().__init__()
+        super().__init__(fraction_fit,
+                         fraction_eval,
+                         min_fit_clients,
+                         min_eval_clients,
+                         min_available_clients,
+                         eval_fn,
+                         on_fit_config_fn,
+                         on_evaluate_config_fn,
+                         accept_failures,
+                         initial_parameters)
 
     # overwrite
     def configure_fit(
