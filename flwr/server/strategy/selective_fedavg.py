@@ -17,9 +17,10 @@
 Paper: https://arxiv.org/abs/1602.05629
 """
 
-
+import random
 from logging import WARNING
 from typing import Callable, Dict, List, Optional, Tuple
+from ..criterion import Criterion
 
 from flwr.common import (
     EvaluateIns,
@@ -134,7 +135,7 @@ class Selective_FedAvg(FedAvg):
                          accept_failures,
                          initial_parameters)
 
-    # overwrite
+    # override
     def configure_fit(
         self, rnd: int, parameters: Parameters, client_manager: ClientManager
     ) -> List[Tuple[ClientProxy, FitIns]]:
@@ -149,9 +150,24 @@ class Selective_FedAvg(FedAvg):
         sample_size, min_num_clients = self.num_fit_clients(
             client_manager.num_available()
         )
-        clients = client_manager.sample(
-            num_clients=sample_size, min_num_clients=min_num_clients
-        )
+        # clients = client_manager.sample(
+        #    num_clients=sample_size, min_num_clients=min_num_clients
+        #)
+        criterion: Optional[Criterion] = None
+        """Sample a number of Flower ClientProxy instances."""
+        # Block until at least num_clients are connected.
+        if min_num_clients is None:
+            min_num_clients = sample_size
+        client_manager.wait_for(min_num_clients)
+        # Sample clients which meet the criterion
+        available_cids = list(client_manager.clients)
+        # print("criterion:", criterion)
+        if criterion is not None:
+            available_cids = [
+                cid for cid in available_cids if  criterion.select(client_manager.clients[cid])
+            ]
+        sampled_cids = random.sample(available_cids, sample_size)
+        clients = [client_manager.clients[cid] for cid in sampled_cids]
         
         # Return client/config pairs
         return [(client, fit_ins) for client in clients]
