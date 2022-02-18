@@ -146,9 +146,6 @@ class Selective_FedAvg(FedAvg):
         sample_size, min_num_clients = self.num_fit_clients(
             client_manager.num_available()
         )
-        # clients = client_manager.sample(
-        #    num_clients=sample_size, min_num_clients=min_num_clients
-        #)
         criterion: Optional[Criterion] = None
         """Sample a number of Flower ClientProxy instances."""
         # Block until at least num_clients are connected.
@@ -163,13 +160,6 @@ class Selective_FedAvg(FedAvg):
                 cid for cid in available_cids if  criterion.select(client_manager.clients[cid])
             ]
         '''
-        metrics_len = client_manager.num_available() # only available clients?
-        metrics = [float('inf')] * matrics_len
-        print("matrics_len:", metrics_len)
-        for client in client_manager.clients:
-            print("client.cid:", client.cid)
-            metrics[client.cid] = client.get_properties()['cpu_time']
-        # [client.get_properties()['cpu_time']  for client in client_manager.clients]
         sampled_cids = random.sample(available_cids, sample_size)
         clients = [client_manager.clients[cid] for cid in sampled_cids]
 
@@ -194,7 +184,4 @@ class Selective_FedAvg(FedAvg):
             (parameters_to_weights(fit_res.parameters), fit_res.num_examples)
             for client, fit_res in results
         ]
-        for result in results:
-            client_id = result[0].cid # ClientProxy.cid
-            cpu_time = result[1].metrics['cpu_time'] # FitRes.metrics
         return weights_to_parameters(aggregate(weights_results)), {}
