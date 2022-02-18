@@ -111,7 +111,7 @@ class CifarRayClient(fl.client.NumPyClient):
         return [val.cpu().numpy() for _, val in net.state_dict().items()]
 
     # def get_properties(self, ins: PropertiesIns) -> PropertiesRes:
-    def get_properties(self, ins):
+    def get_properties(self):
         return self.properties
     
     def set_parameters(self, parameters):

@@ -157,14 +157,22 @@ class Selective_FedAvg(FedAvg):
         client_manager.wait_for(min_num_clients)
         # Sample clients which meet the criterion
         available_cids = list(client_manager.clients)
-        # print("criterion:", criterion)
+        '''TODO: now the criterion is null, so apply select function of Criterion directly here
         if criterion is not None:
             available_cids = [
                 cid for cid in available_cids if  criterion.select(client_manager.clients[cid])
             ]
+        '''
+        metrics_len = client_manager.num_available() # only available clients?
+        metrics = [float('inf')] * matrics_len
+        print("matrics_len:", metrics_len)
+        for client in client_manager.clients:
+            print("client.cid:", client.cid)
+            metrics[client.cid] = client.get_properties()['cpu_time']
+        # [client.get_properties()['cpu_time']  for client in client_manager.clients]
         sampled_cids = random.sample(available_cids, sample_size)
         clients = [client_manager.clients[cid] for cid in sampled_cids]
-        
+
         # Return client/config pairs
         return [(client, fit_ins) for client in clients]
 
@@ -186,4 +194,7 @@ class Selective_FedAvg(FedAvg):
             (parameters_to_weights(fit_res.parameters), fit_res.num_examples)
             for client, fit_res in results
         ]
+        for result in results:
+            client_id = result[0].cid # ClientProxy.cid
+            cpu_time = result[1].metrics['cpu_time'] # FitRes.metrics
         return weights_to_parameters(aggregate(weights_results)), {}
