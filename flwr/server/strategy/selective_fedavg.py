@@ -12,10 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 # ==============================================================================
-"""Federated Averaging (FedAvg) [McMahan et al., 2016] strategy.
-
-Paper: https://arxiv.org/abs/1602.05629
-"""
 
 import random
 from logging import WARNING
@@ -171,3 +167,23 @@ class Selective_FedAvg(FedAvg):
         
         # Return client/config pairs
         return [(client, fit_ins) for client in clients]
+
+    # override
+    def aggregate_fit(
+        self,
+        rnd: int,
+        results: List[Tuple[ClientProxy, FitRes]],
+        failures: List[BaseException],
+    ) -> Tuple[Optional[Parameters], Dict[str, Scalar]]:
+    """Aggregate fit results using weighted average."""
+        if not results:
+            return None, {}
+        # Do not aggregate if there are failures and failures are not accepted
+        if not self.accept_failures and failures:
+            return None, {}
+        # Convert results
+        weights_results = [
+            (parameters_to_weights(fit_res.parameters), fit_res.num_examples)
+            for client, fit_res in results
+        ]
+        return weights_to_parameters(aggregate(weights_results)), {}
