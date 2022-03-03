@@ -151,7 +151,7 @@ class CifarRayClient(fl.client.NumPyClient):
         f.close()
         
         # return local model and statistics
-        return self.get_parameters(net), len(trainloader.dataset), {}
+        return self.get_parameters(net), len(trainloader.dataset), {"cpu_time": self.get_properties['cpu_time']}
 
     def evaluate(self, parameters, config):
 
