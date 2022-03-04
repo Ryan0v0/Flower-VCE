@@ -185,7 +185,6 @@ class Selective_FedAvg(FedAvg):
             for client, fit_res in results
         ]
         cpu_time = [0 for i in range(len(results)] ###NEW
-        for cid in range(len(results)):
         for client, fit_res in results:
             cpu_time[client.cid] = client.get_properties['cpu_time']
         return weights_to_parameters(aggregate(weights_results)), cpu_time
